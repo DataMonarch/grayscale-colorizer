@@ -1,6 +1,8 @@
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+
 import javax.imageio.ImageIO;
 
 public class QuickStart {
@@ -16,11 +18,21 @@ public class QuickStart {
         BufferedImage image = null;
 
         try {
-            String inImgPath = "gray.jpeg";
+            String inImgPath = "gray.png";
+
+            // byte [] imgArr = ImageToByteArray.toRGB(inImgPath);
+
+            System.out.println(Arrays.toString(imgArr));
+
+            
+
             File inpuFile = new File(inImgPath);
-            image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
             
             image = ImageIO.read(inpuFile);
+            int [] imgArr = image;
+
+
             System.out.println("Reading complete!");
 
         } catch (IOException e) {
@@ -28,8 +40,8 @@ public class QuickStart {
         }
         
         try {
-            File outpFile = new File("out.jpg");
-            ImageIO.write(image, "jpg", outpFile);
+            File outpFile = new File("out.png");
+            ImageIO.write(image, "png", outpFile);
             System.out.println("writing complete!");
 
         } catch (Exception e) {
