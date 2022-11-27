@@ -25,24 +25,20 @@ public class QuickStart extends Panel {
      */
     public static void main (String[] args) throws IOException {
 
+        String inImgPath = args[0];
+        int sqSize = Integer.parseInt(args[1]);
+        String processingMode = args[2];
+        System.out.println(processingMode);
         BufferedImage image = null;
 
         try {   
-            String inImgPath = "gray.png";
-
-            // byte [] imgArr = ImageToByteArray.toRGB(inImgPath);
-
-
             File inpuFile = new File(inImgPath);
             image = ImageIO.read(inpuFile);
         } catch (IOException e) {
             System.out.println("Error: " + e);
         }
 
-        long startTime = System.currentTimeMillis();
-//        recolorSingleThreaded(originalImage, resultImage);
         int numberOfThreads = Runtime.getRuntime().availableProcessors();
-        int sq_size = 50;
 
         JFrame frame = new JFrame("Processing Your Image...");
         JLabel jLabel = new JLabel();
@@ -52,87 +48,99 @@ public class QuickStart extends Panel {
         frame.setIconImage(image);
         frame.getContentPane().add(jLabel, BorderLayout.CENTER);
 
-        colorMultithread(image, frame, numberOfThreads, sq_size);
+        long startTime = System.currentTimeMillis();
+
+        if ("M".equals(processingMode)) {
+            System.out.println("--- Processing in MultiThreaded Mode ---");
+            multiThreadedColorizer(image, frame, numberOfThreads, sqSize);
+        } else {
+            System.out.println("--- Processing in SingleThreaded Mode ---");
+            singleThreadedColorizer(image, frame, sqSize);
+        }
+
         long endTime = System.currentTimeMillis();
-
         long duration = endTime - startTime;
+      
 
-        System.out.println(String.valueOf(duration));
-
-        // int width = image.getWidth();
-        // int height = image.getHeight();
-
-
-        // for (int i = 0; i < height; i++) {
-        //     for (int j = 0; j < width; j++) {
-
-        //         colorPixel(image, j, i);
-        //         if ((i + j) % 500 == 0) {
-
-
-
-        //         }
-                
-        //     }
-        // }
-
-        System.out.println("Coloring complete!");
+        System.out.println(">>> Coloring complete!");
+        System.out.println(">>> Total time taken (ms): " + String.valueOf(duration));
 
         
         try {
-            File outpFile = new File("out.png");
+            File outpFile = new File("parots_out.png");
             ImageIO.write(image, "png", outpFile);
-            System.out.println("writing complete!");
+            System.out.println(">>> Writing complete: ");
 
         } catch (Exception e) {
             System.out.println("Error: " + e);
         }
-
-        // String filename = args[0];
-        // int sq_size = Integer.parseInt(args[1]);
-        // String processing_mode = args[2];
-
-        // System.out.println(filename);
-        // System.out.println(sq_size);
-        // System.out.println(processing_mode);
-
-
-
-        // for (int i = 0; i < 5; i++) {
-        //     MultiThreadedThing myThing = new MultiThreadedThing(i);
-        //     Thread myThread = new Thread(myThing);
-        //     myThread.start();
-        //     myThread.join();
-        // }        
+      
 
     }
 
-    public static void colorMultithread(BufferedImage  image, JFrame frame, int numberOfThreads, int sq_size) {
-        List<Thread> threads = new ArrayList<>();
-        int width =  sq_size;
-        int height =  sq_size;
+    public static void multiThreadedColorizer(BufferedImage  image, JFrame frame, int numberOfThreads, int sqSize) {
+
         int imageWidth = image.getWidth();
         int imageHeight = image.getHeight();
-        int numProcessBoxes = (imageHeight * imageWidth) / (sq_size * sq_size);
+
+        int numVerBoxes = intDivisionCeil(imageHeight, sqSize);
+        int numHorBoxes = intDivisionCeil(imageWidth, sqSize);
+        int numProcessBoxes = numHorBoxes * numVerBoxes;
+    
+        int numStages = intDivisionCeil(numProcessBoxes, numberOfThreads);
         
+        System.out.println("Required number of stages: " + numStages);
+        System.out.println("Required number of processing boxes: " + numProcessBoxes);
+
         int leftCorner = 0;
         int topCorner = 0;
+        System.out.println("number of threads: " + numberOfThreads);
 
-        for (int i = 0; i < numProcessBoxes; i+=numberOfThreads) {
+        int totalNumThreads = 0;
 
-            for (int j = 0; j < numberOfThreads && (i + j) <= numProcessBoxes; ++j) {
-                final int threadMultiplier = j;
+        outerloop:
+        for (int i = 0; i <= numStages; i++) {
+            List<Thread> threads = new ArrayList<>();
 
-                MultiThreadedColoring mtc = new MultiThreadedColoring(numberOfThreads, image, frame, leftCorner, topCorner, width, height);
+            System.out.println(">>> Processing Stage: " + i);
+
+            for (int j = 0; j < numberOfThreads; j++) {
+
+
+                boolean rowEnd = false;
+                boolean colEnd = false;
+
+                int width =  sqSize;
+                int height = sqSize;
+
+                if ((leftCorner + width) > imageWidth) {
+                    width = imageWidth - leftCorner;
+                    rowEnd = true;
+                }
+
+                if ((topCorner + height) > imageHeight) {
+                    height = imageHeight - topCorner;
+                    colEnd = true;
+                }
+
+                System.out.println("Generated thread No." + j);
+
+                ThreadedColorizer mtc = new ThreadedColorizer(image, frame, leftCorner, topCorner, width, sqSize);
                 Thread thread = new Thread(mtc);
                 threads.add(thread);
                 thread.start();
 
-                leftCorner += sq_size;
+                totalNumThreads++;
 
-                if (leftCorner >= imageWidth) {
+                leftCorner += sqSize;
+
+                if (rowEnd) {
                     leftCorner = 0;
-                    topCorner += sq_size;
+                    topCorner += sqSize;
+                    
+                    if (colEnd){
+                        break outerloop;
+                    }
                 }
             }
 
@@ -145,57 +153,76 @@ public class QuickStart extends Panel {
                 }
             }
 
-
         }
-        
-    }
+        frame.update(frame.getGraphics());
+        System.out.println(">>> Total No. of threads generated: " + totalNumThreads);
+    }   
 
-    public static void colorSingleThread(BufferedImage image, JFrame frame) {
-        colorImage(image, frame, 0, 0, image.getWidth(), image.getHeight());
-    }
+    public static void singleThreadedColorizer(BufferedImage  image, JFrame frame, int sqSize) {
 
-    public static void colorImage(BufferedImage image, JFrame frame, int leftCorner, int topCorner, int width, int height) {
-        for (int x = leftCorner; x < leftCorner + width && x < image.getWidth(); ++x) {
-            for (int y = topCorner; y < topCorner + height && y < image.getHeight(); ++y) {
-                colorPixel(image, x, y);
+        int imageWidth = image.getWidth();
+        int imageHeight = image.getHeight();
 
-                if ((x + y) % 150 == 0) {
-                    frame.revalidate();
-                    frame.repaint();
-                    // frame.update(frame.getGraphics());
-                    frame.pack();
-                    frame.setVisible(true);
+        int numVerBoxes = intDivisionCeil(imageHeight, sqSize);
+        int numHorBoxes = intDivisionCeil(imageWidth, sqSize);
+        int numProcessBoxes = numHorBoxes * numVerBoxes;
+            
+        System.out.println("Required number of processing boxes: " + numProcessBoxes);
+
+        int leftCorner = 0;
+        int topCorner = 0;
+
+        for (int j = 0; j < numProcessBoxes; j++) {
+
+
+            boolean rowEnd = false;
+            boolean colEnd = false;
+
+            int width =  sqSize;
+            int height = sqSize;
+
+            if ((leftCorner + width) > imageWidth) {
+                width = imageWidth - leftCorner;
+                rowEnd = true;
+            }
+
+            if ((topCorner + height) > imageHeight) {
+                height = imageHeight - topCorner;
+                colEnd = true;
+            }
+
+            ThreadedColorizer mtc = new ThreadedColorizer(image, frame, leftCorner, topCorner, width, sqSize);
+            Thread thread = new Thread(mtc);
+            thread.start();
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+
+            leftCorner += sqSize;
+
+            if (rowEnd) {
+                leftCorner = 0;
+                topCorner += sqSize;
+                
+                if (colEnd){
+                    break;
                 }
             }
         }
+
+        frame.update(frame.getGraphics());
+
     }
 
-    public static void colorPixel (BufferedImage image, int x, int y) {
-        
-        int p = image.getRGB(x, y);
-        int a = (p>>24)&0xff;
-        int r = (p>>16)&0xff;
-        int g = (p>>8)&0xff;
-        int b = p&0xff;
 
-        // int r = pixelUpperBound;
-        // int g = rand.nextInt(pixelUpperBound);
-        // int b = rand.nextInt(pixelUpperBound);
-        
-        if (isShadeOfGray(r, g, b)) {
-            r = Math.min(r + 10, 255);
-            g = Math.max(g - 80, 0);
-            b = Math.max(b - 20, 0);
+    public static int intDivisionCeil(int dividend, int divisor) {
+        if (divisor == 0) {
+            return 0;
         }
-
-        p = (a<<24) | (r<<16) | (g<<8) | b;
-        
-        image.setRGB(x, y, p);
-    }
-
-    public static boolean isShadeOfGray(int red, int blue, int green) {
-        // just check if all the channels are roughly of the same intensity
-        return Math.abs(red - green) < 30 && Math.abs(red - blue) < 30 && Math.abs(green - blue) < 30;
+        return (dividend + divisor - 1) / divisor;
     }
 
 }

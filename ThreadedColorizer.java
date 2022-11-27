@@ -1,22 +1,19 @@
-import java.nio.BufferOverflowException;
 import java.awt.image.BufferedImage;
 
 import javax.swing.JFrame;
 
-public class MultiThreadedColoring implements Runnable{
+public class ThreadedColorizer implements Runnable{
     private BufferedImage image;
-    private int numberOfThreads;
     private JFrame frame;
     private int leftCorner;
     private int topCorner;
     private int width;
     private int height;
 
-    public MultiThreadedColoring (int numberOfThreads, BufferedImage image, JFrame frame, 
+    public ThreadedColorizer (BufferedImage image, JFrame frame, 
                                     int leftCorner, int topCorner, int width, int height) {
         
                                         this.image = image;
-        this.numberOfThreads = numberOfThreads;
         this.frame = frame;
         this.leftCorner = leftCorner;
         this.topCorner = topCorner;
@@ -37,7 +34,6 @@ public class MultiThreadedColoring implements Runnable{
                 if ((x + y) % 150 == 0) {
                     frame.revalidate();
                     frame.repaint();
-                    // frame.update(frame.getGraphics());
                     frame.pack();
                     frame.setVisible(true);
                 }
