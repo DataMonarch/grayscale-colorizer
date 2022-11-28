@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+import javax.naming.InitialContext;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -15,12 +16,8 @@ import javax.swing.WindowConstants;
 
 public class QuickStart extends Panel {
     /**
-     *
-     */
-    private static final int pixelUpperBound = 256;
-
-    /**
      * @param args
+     * @throws Exception
      * @throws InterruptedException
      */
     public static void main (String[] args) throws IOException {
@@ -28,7 +25,27 @@ public class QuickStart extends Panel {
         String inImgPath = args[0];
         int sqSize = Integer.parseInt(args[1]);
         String processingMode = args[2];
-        System.out.println(processingMode);
+
+
+
+        int cntPeriod = 0;
+
+        for (int i = 0; i < inImgPath.length(); i++) {
+            if ('.' == inImgPath.charAt(i)) {
+                cntPeriod++;
+            }
+        }
+
+        if (cntPeriod > 1) {
+            throw new IOException("Filename is not acceptable");
+        }
+
+        String [] arrOfImgPath = inImgPath.split("\\.", 2);
+        String imgName = arrOfImgPath[0];
+        String imgExtension = arrOfImgPath[1];
+
+        System.out.println(imgExtension);
+
         BufferedImage image = null;
 
         try {   
@@ -40,7 +57,7 @@ public class QuickStart extends Panel {
 
         int numberOfThreads = Runtime.getRuntime().availableProcessors();
 
-        JFrame frame = new JFrame("Processing Your Image...");
+        JFrame frame = new JFrame("Coloring Your Image...");
         JLabel jLabel = new JLabel();
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         ImageIcon imageIcon = new ImageIcon(image);
@@ -58,6 +75,11 @@ public class QuickStart extends Panel {
             singleThreadedColorizer(image, frame, sqSize);
         }
 
+        frame.revalidate();
+        frame.repaint();
+        frame.pack();
+        frame.setVisible(true);
+
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
       
@@ -67,9 +89,10 @@ public class QuickStart extends Panel {
 
         
         try {
-            File outpFile = new File("parots_out.png");
-            ImageIO.write(image, "png", outpFile);
-            System.out.println(">>> Writing complete: ");
+            String outFilePath = imgName + "_out." + imgExtension;
+            File outpFile = new File(outFilePath);
+            ImageIO.write(image, imgExtension, outpFile);
+            System.out.println(">>> Writing complete: file saved as " + outFilePath);
 
         } catch (Exception e) {
             System.out.println("Error: " + e);
@@ -99,6 +122,7 @@ public class QuickStart extends Panel {
         int totalNumThreads = 0;
 
         outerloop:
+
         for (int i = 0; i <= numStages; i++) {
             List<Thread> threads = new ArrayList<>();
 
@@ -113,12 +137,13 @@ public class QuickStart extends Panel {
                 int width =  sqSize;
                 int height = sqSize;
 
-                if ((leftCorner + width) > imageWidth) {
+                if ((leftCorner + width) >= imageWidth) {
                     width = imageWidth - leftCorner;
                     rowEnd = true;
+                    System.out.println("Row Complete!");
                 }
 
-                if ((topCorner + height) > imageHeight) {
+                if ((topCorner + height) >= imageHeight) {
                     height = imageHeight - topCorner;
                     colEnd = true;
                 }
@@ -194,6 +219,7 @@ public class QuickStart extends Panel {
             ThreadedColorizer mtc = new ThreadedColorizer(image, frame, leftCorner, topCorner, width, sqSize);
             Thread thread = new Thread(mtc);
             thread.start();
+
             try {
                 thread.join();
             } catch (InterruptedException e) {
