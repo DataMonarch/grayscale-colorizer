@@ -150,7 +150,7 @@ public class QuickStart extends Panel {
 
                 System.out.println("Generated thread No." + j);
 
-                ThreadedColorizer mtc = new ThreadedColorizer(image, frame, leftCorner, topCorner, width, sqSize);
+                ThreadedColorizer mtc = new ThreadedColorizer(image, frame, leftCorner, topCorner, width, height);
                 Thread thread = new Thread(mtc);
                 threads.add(thread);
                 thread.start();
@@ -161,7 +161,7 @@ public class QuickStart extends Panel {
 
                 if (rowEnd) {
                     leftCorner = 0;
-                    topCorner += sqSize;
+                    topCorner += sqSize ;
                     
                     if (colEnd){
                         break outerloop;

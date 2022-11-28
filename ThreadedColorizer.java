@@ -27,8 +27,8 @@ public class ThreadedColorizer implements Runnable{
     }
 
     public static void colorImage(BufferedImage image, JFrame frame, int leftCorner, int topCorner, int width, int height) {
-        for (int x = leftCorner; x < leftCorner + width && x < image.getWidth(); ++x) {
-            for (int y = topCorner; y < topCorner + height && y < image.getHeight(); ++y) {
+        for (int x = leftCorner; x < leftCorner + width; ++x) {
+            for (int y = topCorner; y < topCorner + height; ++y) {
                 colorPixel(image, x, y);
 
                 if ((x + y) % 150 == 0) {
